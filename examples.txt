@@ -1,0 +1,26 @@
+import React, { useState, useEffect } from "react";
+
+export const CounterWithLogger = () => {
+  const [count, setCount] = useState(0);
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    console.log(
+      `Виконується складна операція або логування для числа: ${count}`,
+    );
+  });
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <button onClick={() => setCount(count + 1)}>Кліків: {count}</button>
+      <br />
+      <br />
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Введіть текст..."
+      />
+    </div>
+  );
+};

@@ -1,0 +1,14 @@
+# Project: React + TS + Tailwind + ReactFlow + Monaco + Axios
+
+- Language: ALL code, comments, logs, and strings MUST be in English.
+- Typing: Strict TypeScript only. No 'any'. Define interfaces for all API responses and Node data.
+- React Flow: 
+    - Use custom nodes for specialized UI. 
+    - Memoize custom nodes to prevent performance lags.
+    - Keep graph logic (nodes/edges state) separate from UI layout components.
+- Components: Functional components with 'const' and arrow functions. Use 'lucide-react' for icons if needed.
+- Tailwind: Use 'tailwind-merge' for dynamic classes. Prefer utility classes over custom CSS.
+- Monaco Editor: Ensure proper cleanup (dispose) of the editor instance on component unmount.
+- Axios: Centralize API calls in a 'services/' or 'api/' folder. Use async/await with try/catch.
+- Error Handling: Use Error Boundaries for ReactFlow and Monaco. Log errors with context: "[Axios] Fetch Error: ...".
+- Expandability: Design components as "Atomic" entities. Use Props-based configuration for scalability.
