@@ -32,7 +32,8 @@ const MonacoEditor = () => {
 
 export default MonacoEditor;
 
-/*
+export const DEFAULTVALUECODE = `
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -255,7 +256,7 @@ export const ChatInterface = ({ getWorkflow, setWorkflow }: Props) => {
               <div className="max-h-80 space-y-4 overflow-auto">
                 {messages.map((message) => (
                   <div
-                    key={`${message.id}${message.role}${Math.random() * 10}`}
+                    key={"some key"}
                     className="flex justify-start"
                   >
                     <div
@@ -315,4 +316,4 @@ export const ChatInterface = ({ getWorkflow, setWorkflow }: Props) => {
   );
 };
 
-*/
+`

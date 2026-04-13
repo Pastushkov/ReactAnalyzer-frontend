@@ -1,15 +1,23 @@
 import { useState } from "react";
+// Переконайся, що імпорти відповідають твоїй структурі
 import { AnalysisService } from "../../services/AnalysisService";
 import { useRootContext } from "../../state/rootContext";
+import { DEFAULTVALUECODE } from "../MonacoEditor";
+import { DependencyGraph } from "../Graph/DependencyGraph";
 
+// 1. Оновлено інтерфейс під нову структуру з AST-парсера
 interface AnalysisIssue {
   type: string;
-  msg: string;
+  title: string;
+  explanation: string;
+  suggestion: string;
+  line: number;
 }
 
 interface AnalysisPayload {
   issues: AnalysisIssue[];
   graph: Record<string, unknown>;
+  extracted_data?: Record<string, unknown>; // Додано на майбутнє
 }
 
 interface AnalysisResponse {
@@ -53,20 +61,20 @@ const IssuePanel = () => {
     setError(null);
     try {
       setLoading(true);
-      const { data } = await AnalysisService.analyzeCode(code);
+      const { data } = await AnalysisService.analyzeCode(
+        code || DEFAULTVALUECODE,
+      );
       setResult(data as AnalysisResponse);
     } catch (e) {
       console.error(e);
       setResult(null);
-      setError(
-        "Analysis failed. Check your connection and try again.",
-      );
+      setError("Analysis failed. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Non-empty graph object (ignore `{}` placeholder from API).
+  // Перевірка наявності графа
   const graphKeys = result
     ? Object.keys(result.analysis_results.graph ?? {})
     : [];
@@ -82,7 +90,7 @@ const IssuePanel = () => {
         onClick={handleAnalyze}
         disabled={loading}
       >
-        {loading ? "Analyzing…" : "Analyze"}
+        {loading ? "Analyzing…" : "Analyze Code"}
       </button>
 
       {error && (
@@ -120,48 +128,68 @@ const IssuePanel = () => {
             </span>
           </div>
 
+          {/* Секція Issues з оновленою структурою */}
           <section className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Issues
             </h3>
-            <ul className="space-y-2">
-              {result.analysis_results.issues.map((issue, i) => (
-                <li
-                  key={`${issue.type}-${i}`}
-                  className={`rounded-lg border px-3 py-2.5 text-sm shadow-sm ${issueStyles(issue.type)}`}
-                >
-                  <div className="mb-1 flex items-center gap-2">
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${badgeStyles(issue.type)}`}
-                    >
-                      {issue.type}
-                    </span>
-                  </div>
-                  <p className="leading-relaxed">{issue.msg}</p>
-                </li>
-              ))}
-            </ul>
+            {result.analysis_results.issues.length === 0 ? (
+              <p className="text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                No issues found. Your code looks great!
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {result.analysis_results.issues.map((issue, i) => (
+                  <li
+                    key={`${issue.type}-${i}`}
+                    className={`rounded-lg border px-3 py-3 text-sm shadow-sm flex flex-col gap-2 ${issueStyles(
+                      issue.type,
+                    )}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${badgeStyles(
+                          issue.type,
+                        )}`}
+                      >
+                        {issue.type}
+                      </span>
+                      {/* Відображення рядка, де знайдено проблему */}
+                      <span className="text-xs font-mono opacity-70 font-semibold">
+                        Line: {issue.line}
+                      </span>
+                    </div>
+
+                    <h4 className="font-semibold text-base leading-tight">
+                      {issue.title}
+                    </h4>
+
+                    <p className="leading-relaxed opacity-90">
+                      {issue.explanation}
+                    </p>
+
+                    {/* Виділений блок для пропозиції (Suggestion) */}
+                    <div className="mt-1 rounded bg-white/40 p-2 text-xs border-l-2 border-current">
+                      <span className="font-semibold uppercase tracking-wide opacity-80 block mb-1">
+                        Suggestion
+                      </span>
+                      {issue.suggestion}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
-          <section className="space-y-2">
+          <section className="space-y-2 flex-1 flex flex-col min-h-[400px]">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Code
-            </h3>
-            <pre className="max-h-56 overflow-auto rounded-lg border border-slate-200 bg-slate-950 p-3 text-xs leading-relaxed text-slate-100 shadow-inner">
-              <code className="font-mono whitespace-pre-wrap">
-                {result.code_content}
-              </code>
-            </pre>
-          </section>
-
-          <section className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Graph
+              Graph Visualization
             </h3>
             {hasGraph ? (
-              <pre className="max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white p-3 text-xs font-mono text-slate-800 shadow-sm">
-                {JSON.stringify(result.analysis_results.graph, null, 2)}
-              </pre>
+              <DependencyGraph
+                nodes={(result.analysis_results.graph as any).nodes || []}
+                edges={(result.analysis_results.graph as any).edges || []}
+              />
             ) : (
               <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
                 No graph data yet, or the graph is empty.
@@ -172,9 +200,12 @@ const IssuePanel = () => {
       )}
 
       {!result && !loading && !error && (
-        <p className="text-sm text-slate-500">
-          Run Analyze to see issues, submitted code, and graph output here.
-        </p>
+        <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg">
+          <p className="text-sm text-slate-500 max-w-xs text-center">
+            Click <strong>Analyze Code</strong> to run AST and AI checks, and
+            generate a dependency graph.
+          </p>
+        </div>
       )}
     </div>
   );
